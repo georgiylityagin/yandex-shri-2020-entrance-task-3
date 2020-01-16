@@ -1,8 +1,5 @@
 # Задание 3. Найдите ошибки
 
-В этом репозитории находятся материалы тестового задания «Найдите ошибки» для [16-й Школы разработки интерфейсов](https://yandex.ru/promo/academy/shri) (зима 2020, Москва).
-
-Для работы приложения нужны [Node.js](https://nodejs.org/en/) (v10 или выше) и редактор [VS Code](https://code.visualstudio.com).
 
 ## Задание
 
@@ -10,7 +7,30 @@
 
 Тестовое приложение — это плагин VS Code для удобного прототипирования интерфейсов с помощью дизайн-системы из первого задания. Вы можете описать в файле `.json` блоки, из которых состоит интерфейс. Плагин добавляет превью (1) и линтер (2) для структуры блоков.
 
-![скриншот интерфейса](extension.png)
+## Выполнение задания
+
+##### 1. Устанавливаем зависимости с помощью `npm i` и пробуем запустить приложение нажатием `F5`
+
+После запуска открывается новое окно VS Code, однако скрипт server.ts показывает две проблемы:
+*
+    ```
+    Argument of type '(params: InitializeParams) => { capabilities: { textDocumentSync: string; }; }' is not assignable to parameter of type 'RequestHandler<InitializeParams, InitializeResult, InitializeError>'.
+    Type '{ capabilities: { textDocumentSync: string; }; }' is not assignable to type 'HandlerResult<InitializeResult, InitializeError>'.
+        Type '{ capabilities: { textDocumentSync: string; }; }' is not assignable to type 'InitializeResult'.
+            Types of property 'capabilities' are incompatible.
+                Type '{ textDocumentSync: string; }' is not assignable to type 'ServerCapabilities'.
+                    Type '{ textDocumentSync: string; }' is not assignable to type '_ServerCapabilities'.
+                        Types of property 'textDocumentSync' are incompatible.
+                            Type 'string' is not assignable to type '0 | TextDocumentSyncOptions | 1 | 2 | undefined'.
+    ```
+
+* `Property 'loc' does not exist on type 'AstIdentifier'.`
+
+Первая проблема происходит на этапе инициализации сервера. Читаем сообщение об ошибке, обращаем внимание на строки `Type '{ textDocumentSync: string; }' is not assignable to type 'ServerCapabilities'.` и `Type 'string' is not assignable to type '0 | TextDocumentSyncOptions | 1 | 2 | undefined'`. Отсюда следует, что параметру `textDocumentSync` нельзя присвоить строку. Если навести на него мышку, всплывёт подсказка с документацией, где описано, что это за параметр и какие данные можно ему присвоить. Видим, что `textDocumentSync` определяет, как синхронизуются текстовые документы и является либо объектом `TextDocumentSyncOptions`, либо числом `TextDocumentSyncKind`. Попробуем воспользоваться вторым вариантом, он проще. Открываем документацию `TextDocumentSyncKind`, там описано три типа синхронизации: `None`, `Full` и `Incremental`. Им соответствуют числа от 0 до 2. Судя по описанию, нам подходит `Full`, поскольку изначально мы пытались присвоить textDocumentSync строку 'always'.
+
+Вторая ошибка связана с тем, что `property.key` не содержит свойства `loc`. `property` соответствует интерфейсу `AstProperty` модуля `json-to-ast`. Откроем данный модуль, чтобы посмотреть, какие свойства есть у `AstProperty`. Видим, что надо указавать `property.loc`, вместо `property.key.loc`. Исправляем ошибку.
+
+
 
 ### Превью интерфейса
 
@@ -42,15 +62,3 @@
 Типы сообщений: `Error`, `Warning`, `Information`, `Hint`.
 
 При изменении конфигурации новые настройки должны применяться к работе линтера.
-
-## Как запустить
-
-1. Открыть проект в VS Code.
-2. Запустить `npm i`.
-3. Нажать **F5**.
-
-Должно открыться ещё одно окно VS Code с подключённым плагином.
-
-## Что мы проверяем этим заданием
-
-В этом задании мы хотим проверить, можете ли вы разобраться в незнакомом коде и API, а также ваш навык отладки. Пожалуйста, опишите в коде или в файле README ход ваших мыслей: какие ошибки и как вы нашли, почему они возникли, как их можно исправить. Вы можете использовать сторонние инструменты и библиотеки на свое усмотрение, но мы ждем от вас комментария — что и зачем вы использовали.

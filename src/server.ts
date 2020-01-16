@@ -23,10 +23,11 @@ let conf: ExampleConfiguration | undefined = undefined;
 conn.onInitialize((params: InitializeParams) => {
     return {
         capabilities: {
-            textDocumentSync: 'always'
+            textDocumentSync: 1
         }
     };
 });
+
 
 function GetSeverity(key: RuleKeys): DiagnosticSeverity | undefined {
     if (!conf || !conf.severity) {
@@ -79,7 +80,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
             ? [
                   {
                       key: RuleKeys.UppercaseNamesIsForbidden,
-                      loc: property.key.loc
+                      loc: property.loc
                   }
               ]
             : [];
