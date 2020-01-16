@@ -9,12 +9,12 @@
 
 ## Выполнение задания
 
-##### 1. Устанавливаем зависимости с помощью `npm i` и пробуем запустить приложение нажатием `F5`
+#### Этап 1 
+
+Устанавливаем зависимости с помощью `npm i` и пробуем запустить приложение нажатием `F5`
 
 После запуска открывается новое окно VS Code, однако скрипт server.ts показывает две проблемы:
-*
-    ```
-    Argument of type '(params: InitializeParams) => { capabilities: { textDocumentSync: string; }; }' is not assignable to parameter of type 'RequestHandler<InitializeParams, InitializeResult, InitializeError>'.
+*    Argument of type '(params: InitializeParams) => { capabilities: { textDocumentSync: string; }; }' is not assignable to parameter of type 'RequestHandler<InitializeParams, InitializeResult, InitializeError>'.
     Type '{ capabilities: { textDocumentSync: string; }; }' is not assignable to type 'HandlerResult<InitializeResult, InitializeError>'.
         Type '{ capabilities: { textDocumentSync: string; }; }' is not assignable to type 'InitializeResult'.
             Types of property 'capabilities' are incompatible.
@@ -22,13 +22,19 @@
                     Type '{ textDocumentSync: string; }' is not assignable to type '_ServerCapabilities'.
                         Types of property 'textDocumentSync' are incompatible.
                             Type 'string' is not assignable to type '0 | TextDocumentSyncOptions | 1 | 2 | undefined'.
-    ```
 
 * `Property 'loc' does not exist on type 'AstIdentifier'.`
 
 Первая проблема происходит на этапе инициализации сервера. Читаем сообщение об ошибке, обращаем внимание на строки `Type '{ textDocumentSync: string; }' is not assignable to type 'ServerCapabilities'.` и `Type 'string' is not assignable to type '0 | TextDocumentSyncOptions | 1 | 2 | undefined'`. Отсюда следует, что параметру `textDocumentSync` нельзя присвоить строку. Если навести на него мышку, всплывёт подсказка с документацией, где описано, что это за параметр и какие данные можно ему присвоить. Видим, что `textDocumentSync` определяет, как синхронизуются текстовые документы и является либо объектом `TextDocumentSyncOptions`, либо числом `TextDocumentSyncKind`. Попробуем воспользоваться вторым вариантом, он проще. Открываем документацию `TextDocumentSyncKind`, там описано три типа синхронизации: `None`, `Full` и `Incremental`. Им соответствуют числа от 0 до 2. Судя по описанию, нам подходит `Full`, поскольку изначально мы пытались присвоить textDocumentSync строку 'always'.
 
 Вторая ошибка связана с тем, что `property.key` не содержит свойства `loc`. `property` соответствует интерфейсу `AstProperty` модуля `json-to-ast`. Откроем данный модуль, чтобы посмотреть, какие свойства есть у `AstProperty`. Видим, что надо указавать `property.loc`, вместо `property.key.loc`. Исправляем ошибку.
+
+#### Этап 2
+
+Открываем приложение и пробуем открыть превью для файла `index.json` из первого задания. Вместо структуры блоков видим только надпись `{{content}}`.
+
+В файле `extension.ts` находим функциональное выражение `updateContent`, в котором сгенерированная страница вставляется в превью. Обращаем внимание на регулярное выражение `/{{\s+(\w+)\s+}}/g`, при помощи которого осуществляется замена. Видно, что в `index.html` из папки `preview` пропущены пробелы, добавляем их.
+
 
 
 
