@@ -2,7 +2,6 @@ import {
     createConnection,
     ProposedFeatures,
     TextDocuments,
-    InitializeParams,
     TextDocument,
     Diagnostic,
     DiagnosticSeverity,
@@ -11,23 +10,22 @@ import {
 
 import { basename } from 'path';
 
-import * as jsonToAst from "json-to-ast";
+import * as jsonToAst from 'json-to-ast';
 
 import { ExampleConfiguration, Severity, RuleKeys } from './configuration';
 import { makeLint, LinterProblem } from './linter';
 
-let conn = createConnection(ProposedFeatures.all);
-let docs = new TextDocuments();
-let conf: ExampleConfiguration | undefined = undefined;
+const conn = createConnection(ProposedFeatures.all);
+const docs = new TextDocuments();
+let conf: ExampleConfiguration | undefined;
 
-conn.onInitialize((params: InitializeParams) => {
+conn.onInitialize(() => {
     return {
         capabilities: {
             textDocumentSync: 1
         }
     };
 });
-
 
 function GetSeverity(key: RuleKeys): DiagnosticSeverity | undefined {
     if (!conf || !conf.severity) {
@@ -69,7 +67,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
     const validateObject = (
         obj: jsonToAst.AstObject
     ): LinterProblem<RuleKeys>[] =>
-        obj.children.some(p => p.key.value === 'block')
+        obj.children.some((p) => p.key.value === 'block')
             ? []
             : [{ key: RuleKeys.BlockNameIsRequired, loc: obj.loc }];
 
@@ -99,7 +97,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
             if (severity) {
                 const message = GetMessage(problem.key);
 
-                let diagnostic: Diagnostic = {
+                const diagnostic: Diagnostic = {
                     range: {
                         start: textDocument.positionAt(
                             problem.loc.start.offset
@@ -130,7 +128,7 @@ async function validateAll() {
     }
 }
 
-docs.onDidChangeContent(change => {
+docs.onDidChangeContent((change) => {
     validateTextDocument(change.document);
 });
 

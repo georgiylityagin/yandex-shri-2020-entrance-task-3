@@ -1,6 +1,6 @@
-import { readFileSync, readFile } from "fs";
-import { join, resolve, basename } from "path";
-import { bemhtml } from "bem-xjst";
+import { readFileSync } from 'fs';
+import { join, resolve, basename } from 'path';
+import { bemhtml } from 'bem-xjst';
 
 import * as vscode from 'vscode';
 import {
@@ -8,14 +8,13 @@ import {
     LanguageClientOptions,
     ServerOptions,
     TransportKind,
-    SettingMonitor,
-    DocumentColorRequest
+    SettingMonitor
 } from 'vscode-languageclient';
 
 const serverBundleRelativePath = join('out', 'server.js');
 const previewPath: string = resolve( __dirname, '../preview/index.html');
 const previewHtml: string = readFileSync(previewPath).toString();
-const template = bemhtml.compile()
+const template = bemhtml.compile();
 
 let client: LanguageClient;
 const PANELS: Record<string, vscode.WebviewPanel> = {};
@@ -51,7 +50,7 @@ const getPreviewKey = (doc: vscode.TextDocument): string => doc.uri.path;
 
 const getMediaPath = (context: vscode.ExtensionContext) => vscode.Uri
     .file(context.extensionPath)
-    .with({ scheme: "vscode-resource"})
+    .with({ scheme: 'vscode-resource'})
     .toString() + '/';
 
 const initPreviewPanel = (document: vscode.TextDocument) => {
@@ -69,10 +68,9 @@ const initPreviewPanel = (document: vscode.TextDocument) => {
 
     PANELS[key] = panel;
 
-    const e = panel.onDidDispose(() => 
-    {
+    const e = panel.onDidDispose(() => {
         delete PANELS[key];
-        e.dispose()
+        e.dispose();
     });
 
     return panel;
@@ -87,8 +85,7 @@ const updateContent = (doc: vscode.TextDocument, context: vscode.ExtensionContex
             const data = JSON.parse(json);
             const html = template.apply(data);
 
-
-            panel.webview.html = previewHtml 
+            panel.webview.html = previewHtml
                 .replace(/{{\s+(\w+)\s+}}/g, (str, key) => {
                     switch (key) {
                         case 'content':
@@ -99,7 +96,7 @@ const updateContent = (doc: vscode.TextDocument, context: vscode.ExtensionContex
                             return str;
                     }
                 });
-        } catch(e) {}
+        } catch (e) { console.error(e); }
     }
 };
 
@@ -112,8 +109,7 @@ const openPreview = (context: vscode.ExtensionContext) => {
 
         const panel = PANELS[key];
 
-        if (panel) panel.reveal();
-        else {
+        if (panel) { panel.reveal(); } else {
             const panel = initPreviewPanel(document);
             updateContent(document, context);
             context.subscriptions.push(panel);

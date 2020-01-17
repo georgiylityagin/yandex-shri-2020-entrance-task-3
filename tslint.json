@@ -1,15 +1,21 @@
 {
+    "extends": "tslint:recommended",
 	"rules": {
 		"no-string-throw": true,
 		"no-unused-expression": true,
 		"no-duplicate-variable": true,
 		"curly": true,
 		"class-name": true,
-		"semicolon": [
-			true,
-			"always"
-		],
-		"triple-equals": true
+		"semicolon": [true, "always"],
+        "triple-equals": true,
+        "quotemark": [true, "single"],
+        "trailing-comma": false,
+        "ordered-imports": false,
+        "object-literal-sort-keys": false,
+        "no-console": false,
+        "array-type": false,
+        "interface-name": false,
+        "no-shadowed-variable": false
 	},
 	"defaultSeverity": "warning"
 }
