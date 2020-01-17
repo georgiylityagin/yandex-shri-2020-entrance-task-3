@@ -14,14 +14,7 @@
 Устанавливаем зависимости с помощью `npm i` и пробуем запустить приложение нажатием `F5`
 
 После запуска открывается новое окно VS Code, однако скрипт server.ts показывает две проблемы:
-*    Argument of type '(params: InitializeParams) => { capabilities: { textDocumentSync: string; }; }' is not assignable to parameter of type 'RequestHandler<InitializeParams, InitializeResult, InitializeError>'.
-    Type '{ capabilities: { textDocumentSync: string; }; }' is not assignable to type 'HandlerResult<InitializeResult, InitializeError>'.
-        Type '{ capabilities: { textDocumentSync: string; }; }' is not assignable to type 'InitializeResult'.
-            Types of property 'capabilities' are incompatible.
-                Type '{ textDocumentSync: string; }' is not assignable to type 'ServerCapabilities'.
-                    Type '{ textDocumentSync: string; }' is not assignable to type '_ServerCapabilities'.
-                        Types of property 'textDocumentSync' are incompatible.
-                            Type 'string' is not assignable to type '0 | TextDocumentSyncOptions | 1 | 2 | undefined'.
+* `Argument of type '(params: InitializeParams) => { capabilities: { textDocumentSync: string; }; }' is not assignable to parameter of type 'RequestHandler<InitializeParams, InitializeResult, InitializeError>'.`
 
 * `Property 'loc' does not exist on type 'AstIdentifier'.`
 
@@ -66,6 +59,10 @@
 После этого линтер работает.
 
 ### Этап 7.
+
+Обнаруживаем проблему с типами сообщений линтера - в настройках указываем `Error`, а сообщения показываются как `Information`. Находим соответствующую ошибку в конструкции `switch` функции `GetSeverity` файла `server.ts`. Для случая `Severity.Error` функция возвращала `DiagnosticSeverity.Information`. Исправляем ошибку, проблема исчезает.
+
+### Этап 8.
 
 
 ### Превью интерфейса
