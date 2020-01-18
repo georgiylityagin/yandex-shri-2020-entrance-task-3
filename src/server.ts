@@ -10,10 +10,9 @@ import {
 
 import { basename } from 'path';
 
-import * as jsonToAst from 'json-to-ast';
-
 import { ExampleConfiguration, Severity, RuleKeys } from './configuration';
-import { makeLint, LinterProblem } from './linter';
+
+const customLinter = require('../lib/linter/linter.js');
 
 const conn = createConnection(ProposedFeatures.all);
 const docs = new TextDocuments();
@@ -27,9 +26,40 @@ conn.onInitialize(() => {
     };
 });
 
-function GetSeverity(key: RuleKeys): DiagnosticSeverity | undefined {
+function GetSeverity(code: string): DiagnosticSeverity | undefined {
     if (!conf || !conf.severity) {
         return undefined;
+    }
+
+    let key: RuleKeys;
+
+    switch (code) {
+        case 'WARNING.TEXT_SIZES_SHOULD_BE_EQUAL':
+            key = RuleKeys.TextSizesShoulBeEqual;
+            break;
+        case 'WARNING.INVALID_BUTTON_SIZE':
+            key = RuleKeys.InvalidButtonSize;
+            break;
+        case 'WARNING.INVALID_BUTTON_POSITION':
+            key = RuleKeys.InvalidButtonPosition;
+            break;
+        case 'WARNING.INVALID_PLACEHOLDER_SIZE':
+            key = RuleKeys.InvalidPlaceholderSize;
+            break;
+        case 'TEXT.SEVERAL_H1':
+            key = RuleKeys.SeveralH1;
+            break;
+        case 'TEXT.INVALID_H2_POSITION':
+            key = RuleKeys.InvalidH2Position;
+            break;
+        case 'TEXT.INVALID_H3_POSITION':
+            key = RuleKeys.InvalidH3Position;
+            break;
+        case 'GRID.TOO_MUCH_MARKETING_BLOCKS':
+            key = RuleKeys.TooMuchMarketingBlocks;
+            break;
+        default:
+            return undefined;
     }
 
     const severity: Severity = conf.severity[key];
@@ -48,78 +78,31 @@ function GetSeverity(key: RuleKeys): DiagnosticSeverity | undefined {
     }
 }
 
-function GetMessage(key: RuleKeys): string {
-    if (key === RuleKeys.BlockNameIsRequired) {
-        return 'Field named \'block\' is required!';
-    }
-
-    if (key === RuleKeys.UppercaseNamesIsForbidden) {
-        return 'Uppercase properties are forbidden!';
-    }
-
-    return `Unknown problem type '${key}'`;
-}
-
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
     const source = basename(textDocument.uri);
     const json = textDocument.getText();
 
-    const validateObject = (
-        obj: jsonToAst.AstObject
-    ): LinterProblem<RuleKeys>[] =>
-        obj.children.some((p) => p.key.value === 'block')
-            ? []
-            : [{ key: RuleKeys.BlockNameIsRequired, loc: obj.loc }];
+    const problemList = lint(json);
+    const diagnostics: Diagnostic[] = [];
 
-    const validateProperty = (
-        property: jsonToAst.AstProperty
-    ): LinterProblem<RuleKeys>[] =>
-        /^[A-Z]+$/.test(property.key.value)
-            ? [
-                  {
-                      key: RuleKeys.UppercaseNamesIsForbidden,
-                      loc: property.loc
-                  }
-              ]
-            : [];
+    problemList.forEach((problem: Problem) => {
+        const severity = GetSeverity(problem.code);
 
-    const diagnostics: Diagnostic[] = makeLint(
-        json,
-        validateProperty,
-        validateObject
-    ).reduce(
-        (
-            list: Diagnostic[],
-            problem: LinterProblem<RuleKeys>
-        ): Diagnostic[] => {
-            const severity = GetSeverity(problem.key);
+        if (severity) {
+            diagnostics.push({
+                range: {
+                    start: textDocument.positionAt(problem.location.start.offset),
+                    end: textDocument.positionAt(problem.location.end.offset)
+                },
+                code: problem.code,
+                message: problem.error,
+                severity,
+                source
+            });
+        }
+    });
 
-            if (severity) {
-                const message = GetMessage(problem.key);
-
-                const diagnostic: Diagnostic = {
-                    range: {
-                        start: textDocument.positionAt(
-                            problem.loc.start.offset
-                        ),
-                        end: textDocument.positionAt(problem.loc.end.offset)
-                    },
-                    severity,
-                    message,
-                    source
-                };
-
-                list.push(diagnostic);
-            }
-
-            return list;
-        },
-        []
-    );
-
-    if (diagnostics.length) {
-        conn.sendDiagnostics({ uri: textDocument.uri, diagnostics });
-    }
+    conn.sendDiagnostics({ uri: textDocument.uri, diagnostics });
 }
 
 async function validateAll() {
