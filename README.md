@@ -18,7 +18,7 @@
 
 * `Property 'loc' does not exist on type 'AstIdentifier'.`
 
-Первая проблема происходит на этапе инициализации сервера. Читаем сообщение об ошибке, обращаем внимание на строки `Type '{ textDocumentSync: string; }' is not assignable to type 'ServerCapabilities'.` и `Type 'string' is not assignable to type '0 | TextDocumentSyncOptions | 1 | 2 | undefined'`. Отсюда следует, что параметру `textDocumentSync` нельзя присвоить строку. Если навести на него мышку, всплывёт подсказка с документацией, где описано, что это за параметр и какие данные можно ему присвоить. Видим, что `textDocumentSync` определяет, как синхронизуются текстовые документы и является либо объектом `TextDocumentSyncOptions`, либо числом `TextDocumentSyncKind`. Попробуем воспользоваться вторым вариантом, он проще. Открываем документацию `TextDocumentSyncKind`, там описано три типа синхронизации: `None`, `Full` и `Incremental`. Им соответствуют числа от 0 до 2. Судя по описанию, нам подходит `Full`, поскольку изначально мы пытались присвоить textDocumentSync строку 'always'.
+Первая проблема происходит на этапе инициализации сервера. Читаем сообщение об ошибке, обращаем внимание на строки `Type '{ textDocumentSync: string; }' is not assignable to type 'ServerCapabilities'.` и `Type 'string' is not assignable to type '0 | TextDocumentSyncOptions | 1 | 2 | undefined'`. Отсюда следует, что параметру `textDocumentSync` нельзя присвоить строку. Если навести на него мышку, всплывёт подсказка с документацией, где описано, что это за параметр и какие данные можно ему присвоить. Видим, что `textDocumentSync` определяет, как синхронизуются текстовые документы и является либо объектом `TextDocumentSyncOptions`, либо числом `TextDocumentSyncKind`. Попробуем указать тип `TextDocumentSyncKind`. Открываем документацию `TextDocumentSyncKind`, там описано три типа синхронизации: `None`, `Full` и `Incremental`. Им соответствуют числа от 0 до 2. Судя по описанию типов, нам подходит `Full = 1`, поскольку изначально мы пытались присвоить `textDocumentSync` строку `'always'`, а вариант `Full` означает, что документы всегда синхронизируются путём отправки всего содержимого. Исправляем первоначальный вариант на `textDocumentSync: 1`.
 
 Вторая ошибка связана с тем, что `property.key` не содержит свойства `loc`. `property` соответствует интерфейсу `AstProperty` модуля `json-to-ast`. Откроем данный модуль, чтобы посмотреть, какие свойства есть у `AstProperty`. Видим, что надо указавать `property.loc`, вместо `property.key.loc`. Исправляем ошибку.
 
@@ -26,13 +26,13 @@
 
 Открываем приложение и пробуем открыть превью для файла `index.json` из первого задания. Вместо структуры блоков видим только надпись `{{content}}`.
 
-В файле `extension.ts` находим функциональное выражение `updateContent`, в котором сгенерированная страница вставляется в превью. Обращаем внимание на регулярное выражение `/{{\s+(\w+)\s+}}/g`, при помощи которого осуществляется замена. Видно, что в `index.html` из папки `preview` пропущены пробелы, добавляем их.
+В файле `extension.ts` находим функциональное выражение `updateContent`, в котором сгенерированная страница вставляется в превью. Обращаем внимание на регулярное выражение `/{{\s+(\w+)\s+}}/g`, при помощи которого осуществляется замена. Видно, что в местах, куда должна осуществляться вставка в `index.html` из папки `preview` пропущены пробелы, добавляем их.
 
 ### Этап 3.
 
 Снова пытаемся открыть превью для `index.json`, на этот раз вообще ничего не показывается. Однако надпись `{{content}}` исчезла, следовательно регулярное выражение теперь работает.
 
-Тут можно вспомнить, что интерфейсные блоки не содержат никакого контента, а их внешний вид полностью определяется добавленными стилями. Следовательно проблема может быть в том, что к блокам не правильно применяются стили.
+Тут можно вспомнить, что интерфейсные блоки не содержат никакого контента, а их внешний вид полностью определяется добавленными стилями. Следовательно проблема может быть в том, что к блокам неправильно применяются стили.
 
 Открываем `style.css` в папке `preview` и находим ошибку - стили добавляются не к тегу `div`, а к несуществующему классу `.div`. Убираем лишние точки.
 
@@ -66,14 +66,102 @@
 
 Теперь подправим codestyle. В приложение уже был включём линтер TSLint и конфиг `tsling.json` с несколькими правилами для него. Расширим эти правила, воспользовавшись пресетом `"tslint:recommended"`. Некоторые правила из пресета, которые на мой взгляд не делают codestyle лучше, я отключил.
 
-С помощью линтера был исправлен ряд недочётов в файлах `configuration.ts`, `extension.ts`, `linter.ts` и `server.ts`. В их числе:
+С помощью линтера был исправлен ряд недочётов в файлах `configuration.ts`, `extension.ts`, `linter.ts`, `server.ts` и `jsonMain`. В их числе:
 - неиспользованные переменные
 - разный стиль кавычек
 - больше 1 пустой строки между блоками кода
 - лишние пробелы
 - объявление неизменяемых переменных с помощью let, а не const
 
-Также я зашёл в `tsconfig.json` и раскомментировал дополнительные проверки: `"noImplicitReturns"`, `"noFallthroughCasesInSwitch"` и `"noUnusedParameters"`.
+### Дополнительные исправления недочётов
+
+Просмотрев ещё раз файлы, я нашёл ещё несколько моментов, которые можно исправить:
+
+#### `extension.ts`
+- функция `initPreviewPanel` - в `panel` запишем объектный литерал с одним свойством в одну строчку;
+- блок `catch` в `updateContent` пуст. Добавим вывод ошибки в консоль.
+- функция `openPreview` -  `else` на одной строке с `if`. Исправил.
+- уберём вывод в консоль сообщения `Congratulations, your extension is now active!`.
+
+#### `linter.ts`
+- функцию `parseJson` можно сделать стрелочной.
+
+#### `server.ts`
+- в функции `validateTextDocument` получение списка выявленных ошибок `diagnostics` реализовано слишком сложно для восприятия. Чтобы сделать код более удобочитаемым, избавляемся от метода `reduce` и используем вместо него `forEach`. Слегка подформатируем код. В последней строчке, где выполняется отправка диагностики, убираем проверку условия `if (diagnostics.length)`, поскольку из-за него в настройках типа сообщений теперь перестаёт правильно работать вариант `'None'`.
+<details>
+  <summary>Было</summary>
+
+  ```javescript
+  const diagnostics: Diagnostic[] = makeLint(
+        json,
+        validateProperty,
+        validateObject
+    ).reduce(
+        (
+            list: Diagnostic[],
+            problem: LinterProblem<RuleKeys>
+        ): Diagnostic[] => {
+            const severity = GetSeverity(problem.key);
+
+            if (severity) {
+                const message = GetMessage(problem.key);
+
+                const diagnostic: Diagnostic = {
+                    range: {
+                        start: textDocument.positionAt(
+                            problem.loc.start.offset
+                        ),
+                        end: textDocument.positionAt(problem.loc.end.offset)
+                    },
+                    severity,
+                    message,
+                    source
+                };
+
+                list.push(diagnostic);
+            }
+
+            return list;
+        },
+        []
+    );
+    
+    if (diagnostics.length) {
+        conn.sendDiagnostics({ uri: textDocument.uri, diagnostics });
+    }
+  ```
+</details>
+
+<details>
+  <summary>Стало</summary>
+
+  ```javescript
+  const problems = makeLint(json, validateProperty, validateObject);
+  const diagnostics: Diagnostic[] = [];
+
+  problems.forEach((problem: LinterProblem<RuleKeys>) => {
+        const severity = GetSeverity(problem.key);
+
+        if (severity) {
+            const message = GetMessage(problem.key);
+
+            const diagnostic: Diagnostic = {
+                range: {
+                    start: textDocument.positionAt(problem.loc.start.offset),
+                    end: textDocument.positionAt(problem.loc.end.offset)
+                },
+                severity,
+                message,
+                source
+            };
+
+            diagnostics.push(diagnostic);
+        }
+  });
+
+  conn.sendDiagnostics({ uri: textDocument.uri, diagnostics });
+  ```
+</details>
 
 
 ## Подключение стилей и линтера из первых двух заданий
@@ -98,3 +186,5 @@
 
 
 ### Итоги
+
+Всё сделано
