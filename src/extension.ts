@@ -61,9 +61,7 @@ const initPreviewPanel = (document: vscode.TextDocument) => {
         'example.preview',
         `Preview: ${fileName}`,
         vscode.ViewColumn.Beside,
-        {
-            enableScripts: true
-        }
+        { enableScripts: true }
     );
 
     PANELS[key] = panel;
@@ -109,7 +107,9 @@ const openPreview = (context: vscode.ExtensionContext) => {
 
         const panel = PANELS[key];
 
-        if (panel) { panel.reveal(); } else {
+        if (panel) {
+            panel.reveal();
+        } else {
             const panel = initPreviewPanel(document);
             updateContent(document, context);
             context.subscriptions.push(panel);
@@ -118,8 +118,6 @@ const openPreview = (context: vscode.ExtensionContext) => {
 };
 
 export function activate(context: vscode.ExtensionContext) {
-
-    console.info('Congratulations, your extension is now active!');
 
     client = createLanguageClient(context);
 

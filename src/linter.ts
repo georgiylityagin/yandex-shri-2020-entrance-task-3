@@ -35,7 +35,7 @@ export function makeLint<TProblemKey>(
         }
     }
 
-    function parseJson(json: string): JsonAST  {return jsonToAst(json); }
+    const parseJson = (json: string): JsonAST => jsonToAst(json);
 
     const errors: LinterProblem<TProblemKey>[] = [];
     const ast: JsonAST = parseJson(json);

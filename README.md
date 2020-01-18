@@ -73,5 +73,116 @@
 - лишние пробелы
 - объявление неизменяемых переменных с помощью let, а не const
 
+### Дополнительные исправления недочётов
+
+Просмотрев ещё раз файлы, я нашёл ещё несколько моментов, которые можно исправить:
+
+#### `extension.ts`
+- функция `initPreviewPanel` - в `panel` запишем объектный литерал с одним свойством в одну строчку;
+- блок `catch` в `updateContent` пуст. Добавим вывод ошибки в консоль.
+- функция `openPreview` -  `else` на одной строке с `if`. Исправил.
+- уберём вывод в консоль сообщения `Congratulations, your extension is now active!`.
+
+#### `linter.ts`
+- функцию `parseJson` можно сделать стрелочной.
+
+#### `server.ts`
+- в функции `validateTextDocument` получение списка выявленных ошибок `diagnostics` реализовано слишком сложно для восприятия. Чтобы сделать код более удобочитаемым, избавляемся от метода `reduce` и используем вместо него `forEach`. Слегка подформатируем код. В последней строчке, где выполняется отправка диагностики, убираем проверку условия `if (diagnostics.length)`, поскольку из-за него в настройках типа сообщений теперь перестаёт правильно работать вариант `'None'`.
+<details>
+  <summary>Было</summary>
+
+  ```javescript
+  const diagnostics: Diagnostic[] = makeLint(
+        json,
+        validateProperty,
+        validateObject
+    ).reduce(
+        (
+            list: Diagnostic[],
+            problem: LinterProblem<RuleKeys>
+        ): Diagnostic[] => {
+            const severity = GetSeverity(problem.key);
+
+            if (severity) {
+                const message = GetMessage(problem.key);
+
+                const diagnostic: Diagnostic = {
+                    range: {
+                        start: textDocument.positionAt(
+                            problem.loc.start.offset
+                        ),
+                        end: textDocument.positionAt(problem.loc.end.offset)
+                    },
+                    severity,
+                    message,
+                    source
+                };
+
+                list.push(diagnostic);
+            }
+
+            return list;
+        },
+        []
+    );
+    
+    if (diagnostics.length) {
+        conn.sendDiagnostics({ uri: textDocument.uri, diagnostics });
+    }
+  ```
+</details>
+
+<details>
+  <summary>Стало</summary>
+
+  ```javescript
+  const problems = makeLint(json, validateProperty, validateObject);
+  const diagnostics: Diagnostic[] = [];
+
+  problems.forEach((problem: LinterProblem<RuleKeys>) => {
+        const severity = GetSeverity(problem.key);
+
+        if (severity) {
+            const message = GetMessage(problem.key);
+
+            const diagnostic: Diagnostic = {
+                range: {
+                    start: textDocument.positionAt(problem.loc.start.offset),
+                    end: textDocument.positionAt(problem.loc.end.offset)
+                },
+                severity,
+                message,
+                source
+            };
+
+            diagnostics.push(diagnostic);
+        }
+  });
+
+  conn.sendDiagnostics({ uri: textDocument.uri, diagnostics });
+  ```
+</details>
+
 
 ### Подключение стилей и линтера из первых двух заданий
+
+**Для подключения стилей отображения блоков и линтера создана новая ветка - `custom-styles-and-linter`**
+
+1. Сперва реализуем отображение превью с помощью вёрстки и JS из первого задания. Для этого просто поместим собранные ранее билды `style.css` и `script.js` в папку `preview` и подключим скрипт `script.js` в `index.html`. Проверяем, всё работает корректно.
+
+2. Теперь добавим линтер.
+
+- Сперва удалим файлы старого линтера из папок `src` и `out`.
+- Поместим файл с линтером из второго задания в `lib/linter/`.
+- Новый линтер создаёт функцию `lint()` в глобальной области. Создадим declaration file `global.d.ts` в папке `src`, где объявим функцию вместе с типами.
+- Импортируем линтер в `server.ts` с помощью метода `require`.
+- Исправляем функцию `validateTextDocument` так, чтобы новый линтер заработал.
+- Удаляем ненужные теперь функции и импорты: `GetMessage` и `json-to-ast`.
+- Исправляем файл `configuration.ts`, заменив старые правила линтинга на новые.
+- Чтобы правила заработали, изменим также функцию `GetSeverity` в `server.ts`.
+- Наконец, добавим в настройки возможность выбрать тип сообщения для каждого, из правил. Для этого внесём соответствующие исправления в `package.json`
+
+Проверяем, линтер работает как надо.
+
+
+### Итоги

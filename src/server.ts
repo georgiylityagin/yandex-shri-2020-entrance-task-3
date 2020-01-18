@@ -83,43 +83,30 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
               ]
             : [];
 
-    const diagnostics: Diagnostic[] = makeLint(
-        json,
-        validateProperty,
-        validateObject
-    ).reduce(
-        (
-            list: Diagnostic[],
-            problem: LinterProblem<RuleKeys>
-        ): Diagnostic[] => {
-            const severity = GetSeverity(problem.key);
+    const problems = makeLint(json, validateProperty, validateObject);
+    const diagnostics: Diagnostic[] = [];
 
-            if (severity) {
-                const message = GetMessage(problem.key);
+    problems.forEach((problem: LinterProblem<RuleKeys>) => {
+        const severity = GetSeverity(problem.key);
 
-                const diagnostic: Diagnostic = {
-                    range: {
-                        start: textDocument.positionAt(
-                            problem.loc.start.offset
-                        ),
-                        end: textDocument.positionAt(problem.loc.end.offset)
-                    },
-                    severity,
-                    message,
-                    source
-                };
+        if (severity) {
+            const message = GetMessage(problem.key);
 
-                list.push(diagnostic);
-            }
+            const diagnostic: Diagnostic = {
+                range: {
+                    start: textDocument.positionAt(problem.loc.start.offset),
+                    end: textDocument.positionAt(problem.loc.end.offset)
+                },
+                severity,
+                message,
+                source
+            };
 
-            return list;
-        },
-        []
-    );
+            diagnostics.push(diagnostic);
+        }
+    });
 
-    if (diagnostics.length) {
-        conn.sendDiagnostics({ uri: textDocument.uri, diagnostics });
-    }
+    conn.sendDiagnostics({ uri: textDocument.uri, diagnostics });
 }
 
 async function validateAll() {
